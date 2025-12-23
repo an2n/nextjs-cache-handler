@@ -52,9 +52,9 @@ export type RegisterInitialCacheOptions = {
    */
   routes?: boolean;
   /**
-   * Override the default build directory.
+   * Override the default build directory. Must be an absolute path.
    *
-   * @default .next
+   * @default process.cwd() + '/.next'
    */
   buildDir?: string;
   /**
@@ -110,10 +110,18 @@ export async function registerInitialCache(
   options: RegisterInitialCacheOptions = {},
 ) {
   const debug = typeof process.env.NEXT_PRIVATE_DEBUG_CACHE !== "undefined";
-  const nextJsPath = path.join(
-    process.cwd(),
-    options.buildDir ?? DEFAULT_BUILD_DIR,
-  );
+  const buildDir = options.buildDir;
+  const isAbsoluteBuildDir = buildDir && path.isAbsolute(buildDir);
+
+  if (debug && buildDir && !isAbsoluteBuildDir) {
+    console.warn(
+      "[CacheHandler] buildDir must be an absolute path to avoid dynamic path resolution, falling back to default",
+    );
+  }
+
+  const nextJsPath = isAbsoluteBuildDir
+    ? buildDir
+    : path.join(process.cwd(), DEFAULT_BUILD_DIR);
   const prerenderManifestPath = path.join(nextJsPath, PRERENDER_MANIFEST);
   const serverDistDir = path.join(nextJsPath, SERVER_DIRECTORY);
   const fetchCacheDir = path.join(nextJsPath, "cache", "fetch-cache");
